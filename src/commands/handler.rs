@@ -4,12 +4,15 @@ use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use crate::storage::Storage;
 use std::{format, println};
+use crate::config::info_server::InfoServer;
+use crate::config::server_config::ServerConfig;
 use crate::errors::app_errors::AppError;
 use crate::resp::handler::RespHandler;
 use crate::resp::parser::extract_set_command_args;
-use crate::resp::parser::Parser::{Integer, NullBulkString, SimpleError, SimpleString};
+use crate::resp::parser::Parser::{BulkString, Integer, NullBulkString, SimpleError, SimpleString};
 
-pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>) -> Result<(), Error> {
+pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>, config: Arc<ServerConfig>) -> Result<(), Error> {
+    let mut info_server = InfoServer::new(config);
     let mut handler = RespHandler::new(stream);
 
     loop {
@@ -70,6 +73,15 @@ pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>) 
                         };
 
                         handler.response(Integer(None, count_deleted_keys)).await?
+                    }
+                    "info" => {
+                        if args.len() < 1 {
+                            handler.response(SimpleError(AppError::WrongNumberOfArgumentsError.to_string())).await?;
+                            return Ok(())
+                        }
+
+                        let info_string = info_server.get_info_string();
+                        handler.response(BulkString(info_string)).await?
                     }
                     c => {
                         handler.response(SimpleError(format!("Unknown command: {}", c))).await?;

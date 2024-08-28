@@ -1,25 +1,12 @@
-use std::fmt::Display;
+use crate::enums::sign::Sign;
 use crate::errors::app_errors::AppError;
-
-pub enum Sign {
-    Plus,
-    Minus,
-}
-
-impl Display for Sign {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Sign::Plus => write!(f, "+"),
-            Sign::Minus => write!(f, "-"),
-        }
-    }
-}
 
 pub enum Parser {
     SimpleString(String),
     SimpleError(String),
+    BulkString(String),
     NullBulkString,
-    Integer(Option<Sign>, i32),
+    Integer(Option<Sign>, u16),
 }
 
 impl Parser {
@@ -28,8 +15,9 @@ impl Parser {
             Parser::SimpleString(s) => format!("+{}\r\n", s),
             Parser::SimpleError(s) => format!("-{}\r\n", s),
             Parser::NullBulkString => "$-1\r\n".to_string(),
+            Parser::BulkString(s) => format!("${}\r\n{}\r\n", s.len(), s),
             Parser::Integer(s, i) => match s {
-                Some(sign) => format!(":{}{}\r\n", sign, i),
+                Some(sign) => format!(":{:?}{}\r\n", sign, i),
                 None => format!(":{}\r\n", i),
             },
         }
@@ -56,4 +44,5 @@ pub async fn extract_set_command_args(args: Vec<String>) -> Result<(String, Stri
 
     Ok((key, value, expiration))
 }
+
 
