@@ -1,8 +1,8 @@
 use bytes::BytesMut;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-use crate::parser::Parser;
 use std::io::{Error, ErrorKind};
+use crate::resp::parser::Parser;
 
 pub struct RespHandler {
     stream: TcpStream,
@@ -52,26 +52,5 @@ impl RespHandler {
     pub async fn response(&mut self, value: Parser) -> Result<(), Error> {
         self.stream.write_all(value.serialize().as_bytes()).await?;
         Ok(())
-    }
-
-    pub async fn extract_set_command_args(&mut self, args: Vec<String>) -> Result<(String, String, usize), Error> {
-        if args.len() < 2 {
-            return Err(Error::new(ErrorKind::InvalidInput, "Wrong number of arguments for 'set' command"));
-        }
-
-        let key = args[0].clone();
-        let value = args[1].clone();
-        let expiration = if args.len() > 3 && args[2] == "px" {
-            match args[3].parse() {
-                Ok(exp) => exp,
-                Err(_) => {
-                    return Err(Error::new(ErrorKind::InvalidInput, "Invalid expiration value"));
-                }
-            }
-        } else {
-            0
-        };
-
-        Ok((key, value, expiration))
     }
 }

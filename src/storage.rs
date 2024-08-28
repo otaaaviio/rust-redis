@@ -39,6 +39,16 @@ impl Storage {
             false => Some(item),
         }
     }
+
+    pub fn del(&mut self, keys: Vec<&str>) -> i32 {
+        let mut deleted_items = 0;
+        for key in keys {
+            if let Some(_) = self.items.remove(key) {
+                deleted_items += 1;
+            }
+        }
+        deleted_items
+    }
 }
 
 impl Default for Storage {
