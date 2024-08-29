@@ -14,6 +14,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use crate::commands::handler::handle_connection;
 use crate::config::server_config::{get_server_config};
+use crate::servers::replication::ServerReplication;
 use crate::storage::Storage;
 
 #[tokio::main]
@@ -21,6 +22,12 @@ async fn main() {
     let config = Arc::new(get_server_config(args()));
     let storage = Arc::new(Mutex::new(Storage::new()));
     let listener = TcpListener::bind(format!("{}:{}", config.host, config.port)).await.unwrap();
+
+    if config.is_replication {
+        let config_clone = Arc::clone(&config);
+        let mut replication_server = ServerReplication::new(config_clone).await;
+        replication_server.handshake().await;
+    }
 
     loop {
         let res = listener.accept().await;

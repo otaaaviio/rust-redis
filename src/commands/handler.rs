@@ -46,7 +46,7 @@ pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>, 
                     "get" => {
                         if args.len() < 1 {
                             handler.response(SimpleError(AppError::WrongNumberOfArgumentsError.to_string())).await?;
-                            return Ok(())
+                            return Ok(());
                         }
 
                         let response = {
@@ -64,7 +64,7 @@ pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>, 
                     "del" => {
                         if args.len() < 1 {
                             handler.response(SimpleError(AppError::WrongNumberOfArgumentsError.to_string())).await?;
-                            return Ok(())
+                            return Ok(());
                         }
 
                         let count_deleted_keys = {
@@ -77,11 +77,17 @@ pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>, 
                     "info" => {
                         if args.len() < 1 {
                             handler.response(SimpleError(AppError::WrongNumberOfArgumentsError.to_string())).await?;
-                            return Ok(())
+                            return Ok(());
                         }
 
                         let info_string = info_server.get_info_string();
                         handler.response(BulkString(info_string)).await?
+                    }
+                    "replconf" => {
+                        handler.response(SimpleString("OK".to_string())).await?
+                    }
+                    "psync" => {
+                        handler.response(SimpleString(format!("FULLRESYNC {} {}", info_server.master_replid, info_server.master_repl_offset))).await?
                     }
                     c => {
                         handler.response(SimpleError(format!("Unknown command: {}", c))).await?;

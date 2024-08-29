@@ -45,6 +45,7 @@ impl RespHandler {
                 command = args.remove(0).to_lowercase();
             }
         }
+        self.buffer.clear();
 
         Ok((command, args))
     }

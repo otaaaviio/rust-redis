@@ -6,20 +6,34 @@ pub enum Parser {
     SimpleError(String),
     BulkString(String),
     NullBulkString,
+    Array(Vec<String>),
     Integer(Option<Sign>, u16),
 }
 
 impl Parser {
-    pub fn serialize(self) -> String {
+    pub fn serialize(&self) -> String {
         match self {
             Parser::SimpleString(s) => format!("+{}\r\n", s),
             Parser::SimpleError(s) => format!("-{}\r\n", s),
             Parser::NullBulkString => "$-1\r\n".to_string(),
+            Parser::Array(v) => self.get_array_string(v),
             Parser::BulkString(s) => format!("${}\r\n{}\r\n", s.len(), s),
-            Parser::Integer(s, i) => match s {
-                Some(sign) => format!(":{:?}{}\r\n", sign, i),
-                None => format!(":{}\r\n", i),
-            },
+            Parser::Integer(s, i) => self.get_integer_string(s, *i),
+        }
+    }
+
+    fn get_array_string(&self, v: &Vec<String>) -> String {
+        let mut array_string = format!("*{}\r\n", v.len());
+        for s in v {
+            array_string.push_str(&format!("${}\r\n{}\r\n", s.len(), s));
+        }
+        array_string
+    }
+
+    fn get_integer_string(&self, sign: &Option<Sign>, i: u16) -> String {
+        match sign {
+            Some(sign) => format!(":{:?}{}\r\n", sign, i),
+            None => format!(":{}\r\n", i),
         }
     }
 }

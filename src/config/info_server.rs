@@ -8,8 +8,8 @@ use crate::enums::role::Role;
 pub struct InfoServer {
     role: Role,
     connected_slaves: u16,
-    master_replid: String,
-    master_repl_offset: u16,
+    pub(crate) master_replid: String,
+    pub(crate) master_repl_offset: u16,
 }
 
 impl InfoServer {
