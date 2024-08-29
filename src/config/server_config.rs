@@ -32,7 +32,7 @@ pub fn get_server_config(args: std::env::Args) -> ServerConfig {
                     }
                 }
             }
-            "--replicaof" => {
+            "--replicaof | -r" => {
                 config.is_replication = true;
                 if let Some(replicaof) = args_iter.next() {
                     let parts: Vec<&str> = replicaof.split(' ').collect();

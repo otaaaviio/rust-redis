@@ -3,7 +3,8 @@ use std::fmt;
 #[derive(Debug)]
 pub enum AppError {
     InvalidExpirationValue,
-    WrongNumberOfArgumentsError
+    WrongNumberOfArgumentsError,
+    InvalidPattern
 }
 
 impl fmt::Display for AppError {
@@ -11,6 +12,7 @@ impl fmt::Display for AppError {
         match self {
             AppError::InvalidExpirationValue => write!(f, "ERR value is not an integer or out of range"),
             AppError::WrongNumberOfArgumentsError => write!(f, "ERR wrong number of arguments for command"),
+            AppError::InvalidPattern => write!(f, "ERR invalid pattern"),
         }
     }
 }

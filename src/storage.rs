@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::time::Instant;
+use crate::errors::app_errors::AppError;
 
 #[derive(Debug)]
 pub struct Item {
@@ -48,6 +49,24 @@ impl Storage {
             }
         }
         deleted_items
+    }
+
+    pub fn keys(&mut self, expr: &str) -> Result<Vec<String>, AppError> {
+        if expr.contains('*') {
+            let pattern = expr.replace("*", ".*");
+            let regex = regex::Regex::new(&pattern).map_err(|_| AppError::InvalidPattern)?;
+
+            let keys = self.items.keys()
+                .filter(|key| regex.is_match(key))
+                .cloned()
+                .collect();
+            return Ok(keys);
+        }
+        let keys = self.items.keys()
+            .filter(|key| key == &expr)
+            .cloned()
+            .collect();
+        Ok(keys)
     }
 }
 

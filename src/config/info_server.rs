@@ -7,7 +7,7 @@ use crate::enums::role::Role;
 #[derive(Debug)]
 pub struct InfoServer {
     role: Role,
-    connected_slaves: u16,
+    pub(crate) connected_slaves: u16,
     pub(crate) master_replid: String,
     pub(crate) master_repl_offset: u16,
 }

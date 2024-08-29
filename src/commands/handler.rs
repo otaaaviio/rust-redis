@@ -5,14 +5,21 @@ use tokio::sync::Mutex;
 use crate::storage::Storage;
 use std::{format, println};
 use crate::config::info_server::InfoServer;
-use crate::config::server_config::ServerConfig;
 use crate::errors::app_errors::AppError;
 use crate::resp::handler::RespHandler;
 use crate::resp::parser::extract_set_command_args;
-use crate::resp::parser::Parser::{BulkString, Integer, NullBulkString, SimpleError, SimpleString};
+use crate::resp::parser::Parser::{Array, BulkString, Integer, NullBulkString, SimpleError, SimpleString};
 
-pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>, config: Arc<ServerConfig>) -> Result<(), Error> {
-    let mut info_server = InfoServer::new(config);
+macro_rules! verify_args {
+    ($expr:expr, $handler:expr) => {{
+        if $expr {
+            $handler.response(SimpleError(AppError::WrongNumberOfArgumentsError.to_string())).await?;
+            return Ok(());
+        }
+    }};
+}
+
+pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>, info_server: Arc<Mutex<InfoServer>>) -> Result<(), Error> {
     let mut handler = RespHandler::new(stream);
 
     loop {
@@ -32,10 +39,8 @@ pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>, 
                         let set_command_args = extract_set_command_args(args).await;
                         match set_command_args {
                             Ok((key, value, exp)) => {
-                                {
-                                    let mut storage = storage.lock().await;
-                                    storage.set(key, value, exp)
-                                }
+                                let mut storage = storage.lock().await;
+                                storage.set(key, value, exp);
                                 handler.response(SimpleString("OK".to_string())).await?;
                             }
                             Err(e) => {
@@ -44,28 +49,20 @@ pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>, 
                         }
                     }
                     "get" => {
-                        if args.len() < 1 {
-                            handler.response(SimpleError(AppError::WrongNumberOfArgumentsError.to_string())).await?;
-                            return Ok(());
-                        }
+                        verify_args!(args.len() < 1, handler);
 
                         let response = {
-                            {
-                                let mut storage = storage.lock().await;
-                                match storage.get(args[0].as_str()) {
-                                    Some(item) => SimpleString(item.value.clone()),
-                                    None => NullBulkString,
-                                }
+                            let mut storage = storage.lock().await;
+                            match storage.get(args[0].as_str()) {
+                                Some(item) => SimpleString(item.value.clone()),
+                                None => NullBulkString,
                             }
                         };
 
                         handler.response(response).await?;
                     }
                     "del" => {
-                        if args.len() < 1 {
-                            handler.response(SimpleError(AppError::WrongNumberOfArgumentsError.to_string())).await?;
-                            return Ok(());
-                        }
+                        verify_args!(args.len() < 1, handler);
 
                         let count_deleted_keys = {
                             let mut storage = storage.lock().await;
@@ -75,19 +72,27 @@ pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>, 
                         handler.response(Integer(None, count_deleted_keys)).await?
                     }
                     "info" => {
-                        if args.len() < 1 {
-                            handler.response(SimpleError(AppError::WrongNumberOfArgumentsError.to_string())).await?;
-                            return Ok(());
-                        }
-
+                        verify_args!(args.len() < 1, handler);
+                        let mut info_server = info_server.lock().await;
                         let info_string = info_server.get_info_string();
-                        handler.response(BulkString(info_string)).await?
+                        handler.response(BulkString(info_string)).await?;
                     }
                     "replconf" => {
                         handler.response(SimpleString("OK".to_string())).await?
                     }
                     "psync" => {
-                        handler.response(SimpleString(format!("FULLRESYNC {} {}", info_server.master_replid, info_server.master_repl_offset))).await?
+                        let info_server = info_server.lock().await;
+                        handler
+                            .response(SimpleString(format!("FULLRESYNC {} {}", info_server.master_replid, info_server.master_repl_offset)))
+                            .await?;
+                    }
+                    "keys" => {
+                        verify_args!(args.len() != 1, handler);
+                        let mut storage = storage.lock().await;
+                        match storage.keys(&args[0]) {
+                            Ok(keys) => handler.response(Array(keys)).await?,
+                            Err(e) => handler.response(SimpleError(e.to_string())).await?
+                        }
                     }
                     c => {
                         handler.response(SimpleError(format!("Unknown command: {}", c))).await?;
