@@ -94,6 +94,11 @@ pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>, 
                             Err(e) => handler.response(SimpleError(e.to_string())).await?
                         }
                     }
+                    "save" => {
+                        let mut storage = storage.lock().await;
+                        storage.save_rdb_file().unwrap();
+                        handler.response(SimpleString("OK".to_string())).await?
+                    }
                     c => {
                         handler.response(SimpleError(format!("Unknown command: {}", c))).await?;
                     }

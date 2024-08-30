@@ -7,10 +7,14 @@ mod errors;
 mod servers;
 mod config;
 mod enums;
+#[macro_use]
+mod macros;
+mod constants;
 
 use std::env::args;
 use tokio::net::TcpListener;
 use std::sync::Arc;
+use std::time::{Duration};
 use tokio::sync::Mutex;
 use crate::commands::handler::handle_connection;
 use crate::config::info_server::InfoServer;
@@ -29,7 +33,11 @@ async fn main() {
         let config_clone = Arc::clone(&config);
         let mut replication_server = ServerReplication::new(config_clone).await;
         replication_server.handshake().await;
+    } else {
+        load_rdb_file!(storage);
     }
+
+    init_snapshotting!(storage, tokio);
 
     loop {
         let res = listener.accept().await;
