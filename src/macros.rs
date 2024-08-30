@@ -1,9 +1,9 @@
 macro_rules! init_snapshotting {
-    ($storage:expr, $tokio:expr) => {
+    ($storage:expr) => {
         let storage_clone = Arc::clone(&$storage);
         tokio::spawn(async move {
             let mut i = 0;
-            let mut time_to_sleep= 60;
+            let mut time_to_sleep= DEFAULT_SNAPSHOT_PERIOD as u64;
             loop {
                 tokio::time::sleep(Duration::from_secs(time_to_sleep)).await;
                 let mut storage = storage_clone.lock().await;

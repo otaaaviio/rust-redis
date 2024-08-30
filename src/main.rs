@@ -1,5 +1,4 @@
 extern crate core;
-
 mod storage;
 mod commands;
 mod resp;
@@ -11,6 +10,7 @@ mod enums;
 mod macros;
 mod constants;
 
+use crate::constants::DEFAULT_SNAPSHOT_PERIOD;
 use std::env::args;
 use tokio::net::TcpListener;
 use std::sync::Arc;
@@ -37,7 +37,7 @@ async fn main() {
         load_rdb_file!(storage);
     }
 
-    init_snapshotting!(storage, tokio);
+    init_snapshotting!(storage);
 
     loop {
         let res = listener.accept().await;

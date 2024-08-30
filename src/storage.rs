@@ -55,7 +55,6 @@ impl Storage {
 
     pub fn get(&mut self, key: &str) -> Option<&Item> {
         let item = self.items.get(key)?;
-        println!("{:?}", self.items);
         let is_expired = item.expires > 0 && item.created.elapsed().as_millis() > item.expires as u128;
 
         match is_expired {
