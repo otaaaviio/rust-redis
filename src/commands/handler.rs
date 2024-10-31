@@ -5,6 +5,7 @@ use tokio::sync::Mutex;
 use crate::storage::Storage;
 use std::{format, println};
 use crate::config::info_server::InfoServer;
+use crate::config::server_config::ServerConfig;
 use crate::errors::app_errors::AppError;
 use crate::resp::handler::RespHandler;
 use crate::resp::parser::extract_set_command_args;
@@ -19,7 +20,7 @@ macro_rules! verify_args {
     }};
 }
 
-pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>, info_server: Arc<Mutex<InfoServer>>) -> Result<(), Error> {
+pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>, info_server: Arc<Mutex<InfoServer>>, config: Arc<ServerConfig>) -> Result<(), Error> {
     let mut handler = RespHandler::new(stream);
 
     loop {
@@ -99,9 +100,21 @@ pub async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<Storage>>, 
                         storage.save_rdb_file().unwrap();
                         handler.response(SimpleString("OK".to_string())).await?
                     }
-                    c => {
-                        handler.response(SimpleError(format!("Unknown command: {}", c))).await?;
+                    "config" => {
+                        verify_args!(args.len() < 2, handler);
+
+                        match args[0].as_str() {
+                            "get" => {
+                                match args[1].as_str() {
+                                    "dir" => handler.response(Array(vec!["dir".to_string(), config.rdb_dir.clone()])).await?,
+                                    "dbfilename" => handler.response(Array(vec!["dbfilename".to_string(), config.rdb_filename.clone()])).await?,
+                                    d => handler.response(Array(Vec::from([String::from(d)]))).await?,
+                                }
+                            }
+                            c => handler.response(SimpleError(format!("Unknown config command: {}", c))).await?
+                        }
                     }
+                    c => handler.response(SimpleError(format!("Unknown command: {}", c))).await?
                 }
             }
             Err(e) => {

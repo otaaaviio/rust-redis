@@ -4,7 +4,7 @@ use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::time::{Duration, Instant};
 use crate::errors::app_errors::AppError;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use crate::constants::{DEFAULT_CHANGE_THRESHOLD, DEFAULT_SNAPSHOT_PERIOD};
+use crate::constants::{DEFAULT_CHANGE_THRESHOLD, DEFAULT_RDB_FULL_PATH, DEFAULT_SNAPSHOT_PERIOD};
 
 #[derive(Debug)]
 pub struct Item {
@@ -18,27 +18,27 @@ pub struct Snapshot {
     change_count: u32,
     snapshot_change_threshold: u32,
     pub snapshot_period_secs: u32,
-    last_snapshot_time: Instant
+    last_snapshot_time: Instant,
 }
 
 #[derive(Debug)]
 pub struct Storage {
     pub items: HashMap<String, Item>,
     dump_path: String,
-    pub snapshot: Snapshot
+    pub snapshot: Snapshot,
 }
 
 impl Storage {
-    pub fn new() -> Self {
+    pub fn new(rdb_path: String) -> Self {
         Storage {
             items: HashMap::new(),
-            dump_path: String::from("src/dump/dump.rdb"),
+            dump_path: rdb_path,
             snapshot: Snapshot {
                 change_count: 0,
                 snapshot_change_threshold: DEFAULT_CHANGE_THRESHOLD,
                 snapshot_period_secs: DEFAULT_SNAPSHOT_PERIOD,
                 last_snapshot_time: Instant::now(),
-            }
+            },
         }
     }
 
@@ -178,6 +178,6 @@ impl Storage {
 
 impl Default for Storage {
     fn default() -> Self {
-        Storage::new()
+        Storage::new(String::from(DEFAULT_RDB_FULL_PATH))
     }
 }

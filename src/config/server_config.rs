@@ -5,6 +5,8 @@ pub struct ServerConfig {
     pub(crate) master_port: u16,
     pub(crate) master_host: String,
     pub(crate) is_replication: bool,
+    pub(crate) rdb_dir: String,
+    pub(crate) rdb_filename: String,
 }
 
 impl Default for ServerConfig {
@@ -15,6 +17,8 @@ impl Default for ServerConfig {
             master_port: 6379,
             master_host: "".to_string(),
             is_replication: false,
+            rdb_dir: "src/tmp/redis-files/".to_string(),
+            rdb_filename: "dump.rdb".to_string(),
         }
     }
 }
@@ -42,6 +46,16 @@ pub fn get_server_config(args: std::env::Args) -> ServerConfig {
                             config.master_port = port;
                         }
                     }
+                }
+            }
+            "--dir" | "-d" => {
+                if let Some(path) = args_iter.next() {
+                    config.rdb_dir = path;
+                }
+            }
+            "--dbfilename" => {
+                if let Some(filename) = args_iter.next() {
+                    config.rdb_filename = filename;
                 }
             }
             _ => {}

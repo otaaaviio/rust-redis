@@ -26,7 +26,7 @@ use crate::storage::Storage;
 async fn main() {
     let config = Arc::new(get_server_config(args()));
     let listener = TcpListener::bind(format!("{}:{}", config.host, config.port)).await.unwrap();
-    let storage = Arc::new(Mutex::new(Storage::new()));
+    let storage = Arc::new(Mutex::new(Storage::new(format!("{}{}", config.rdb_dir, config.rdb_filename))));
     let info_server = Arc::new(Mutex::new(InfoServer::new(Arc::clone(&config))));
 
     if config.is_replication {
@@ -47,8 +47,9 @@ async fn main() {
                 println!("Accepted connection from {addr}");
                 let storage_clone = Arc::clone(&storage);
                 let info_server_clone = Arc::clone(&info_server);
+                let config_clone = Arc::clone(&config);
                 tokio::spawn(async move {
-                    handle_connection(stream, storage_clone, info_server_clone).await.unwrap()
+                    handle_connection(stream, storage_clone, info_server_clone, config_clone).await.unwrap()
                 });
             }
             Err(e) => {
