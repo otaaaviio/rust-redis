@@ -72,3 +72,12 @@
 - [ ] Failures within transactions
 - [ ] Multiple transactions
 
+
+## RDB Persistence
+
+- [x] RDB file config
+- [x] Read a key
+- [x] Read a string value
+- [x] Read multiple keys
+- [x] Read multiple string values
+- [x] Read value with expiry
